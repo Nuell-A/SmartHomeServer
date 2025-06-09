@@ -1,6 +1,9 @@
 ﻿using System.Net.Sockets;
-using System.Text;
-using System.Threading;
+
+/*
+Server loop. Creates Socket and contains loop for incoming connections, sending them
+on a different thread for handling.
+*/
 
 const int PORT = 2040;
 TCPSocket tcpSocket = new(); // Same as new TCPSocket()

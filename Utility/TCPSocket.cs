@@ -127,6 +127,22 @@ class TCPSocket
         Console.WriteLine("Message sent.");
     }
 
+    public async Task SendLength(string message)
+    {
+        byte[] messageBytesLength = Encoding.UTF8.GetBytes(message);
+        int length = messageBytesLength.Length;
+        byte[] lengthPrefix = BitConverter.GetBytes(length);
+
+        if (this.sock == null)
+        {
+            throw new InvalidOperationException("Socket has not yet been created.");
+        }
+
+        Console.WriteLine("Sending length...");
+        _ = await this.sock.SendAsync(lengthPrefix, SocketFlags.None);
+        Console.WriteLine("Length sent.");
+    }
+
     public async Task<string> Receive(byte[] buffer, Socket conn)
     {
         /*
@@ -137,12 +153,14 @@ class TCPSocket
         int message = await conn.ReceiveAsync(buffer, SocketFlags.None);
         string messageString = Encoding.UTF8.GetString(buffer, 0, message);
 
-        string eom = "<|EOM|>";
-        if (messageString.IndexOf(eom) > -1)
-        {
-            return messageString;
-        }
+        return messageString;
+    }
 
-        return "Error receiving message.";
+    public async Task<int> ReceiveLength(byte[] buffer, Socket conn)
+    {
+        await conn.ReceiveAsync(buffer, SocketFlags.None);
+        int messageLength = BitConverter.ToInt32(buffer);
+
+        return messageLength;
     }
 }
