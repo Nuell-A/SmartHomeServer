@@ -5,4 +5,4 @@ Creating this project in order to handle some microcontrollers I have operating;
 **This is 1 of 3 repositories relating to this project**:
 - .NET backend service (this one)
 - VueJS frontend service
-- Client service (microcontrollers)
+- Client service in C++ (microcontrollers)
