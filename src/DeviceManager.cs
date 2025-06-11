@@ -11,35 +11,45 @@ class DeviceManager
 
     public async void HandleClient(Socket conn, TCPSocket tcpSocket)
     {
-        // Buffer to check message length
-        byte[] bufferSize = new byte[4]; // 4 for int byte size
-        byte[] buffer = new byte[await tcpSocket.ReceiveLength(bufferSize, conn)]; // Now that we have the size of buffer needed
-
-        string message = await tcpSocket.Receive(buffer, conn);
-        JSONMessage jsonObject = JsonSerializer.Deserialize<JSONMessage>(message);
-
-        Console.WriteLine($"{jsonObject.source}\n{jsonObject.type}");
-
-        Console.WriteLine("------------------------");
-
-        Console.WriteLine(message);
-
-        // Create JSON object
-        JSONMessage response = new()
+        while (true)
         {
-            source = "device",
-            type = "information",
-            device_ip = "clientIp.ToString()",
-            state = new Dictionary<string, string>
+            // Buffer to check message length
+            byte[] bufferSize = new byte[4]; // 4 for int byte size
+            int length = await tcpSocket.ReceiveLength(bufferSize, conn);
+            if (length == -1)
             {
-                { "relay1", "on" }
-            },
-            timestamp = "temporary"
-        };
+                Console.WriteLine("Client Disconnected.");
+                break;
+            }
+            byte[] buffer = new byte[length]; // Now that we have the size of buffer needed
 
-        string messageJson = JsonSerializer.Serialize(response); // Serialize
-        await SendLength(messageJson, conn);
-        await Send(messageJson, conn);
+            string message = await tcpSocket.Receive(buffer, conn, length);
+            JSONMessage jsonObject = JsonSerializer.Deserialize<JSONMessage>(message);
+
+            Console.WriteLine($"{jsonObject.source}\n{jsonObject.type}");
+
+            Console.WriteLine("------------------------");
+
+            Console.WriteLine(message);
+
+            // Create JSON object
+            JSONMessage response = new()
+            {
+                source = "device",
+                type = "information",
+                device_ip = "clientIp.ToString()",
+                state = new Dictionary<string, string>
+                {
+                    { "relay1", "on" }
+                },
+                timestamp = "temporary"
+            };
+
+            string messageJson = JsonSerializer.Serialize(response); // Serialize
+            await SendLength(messageJson, conn);
+            await Send(messageJson, conn);
+        }
+        
     }
 
     static async Task Send(string message, Socket conn)

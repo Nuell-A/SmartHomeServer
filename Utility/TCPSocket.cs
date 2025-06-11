@@ -143,24 +143,64 @@ class TCPSocket
         Console.WriteLine("Length sent.");
     }
 
-    public async Task<string> Receive(byte[] buffer, Socket conn)
+    public async Task<string> Receive(byte[] buffer, Socket conn, int length)
     {
         /*
         Recieves bytes, converts to string, ensures bytes are complete and returns message.
         */
         Console.WriteLine("Receiving message from client...");
 
-        int message = await conn.ReceiveAsync(buffer, SocketFlags.None);
-        string messageString = Encoding.UTF8.GetString(buffer, 0, message);
+        /*TODO:
+        Figure out how to match bytes received to buffer size.*/
+        int totalRead = 0;
+
+        while (totalRead < length)
+        {
+            int bytesRead = await conn.ReceiveAsync(buffer.AsMemory(totalRead, length - totalRead), SocketFlags.None);
+            if (bytesRead == 0)
+            {
+                // Message not received
+                throw new IOException("Connection closed while receiving data.");
+            }
+
+            totalRead += bytesRead;
+        }
+
+        string messageString = Encoding.UTF8.GetString(buffer, 0, totalRead);
 
         return messageString;
     }
 
     public async Task<int> ReceiveLength(byte[] buffer, Socket conn)
     {
-        await conn.ReceiveAsync(buffer, SocketFlags.None);
-        int messageLength = BitConverter.ToInt32(buffer);
+        try
+        {
+            int totalRead = 0;
+            // Verify all of the message is received (for length)
+            while (totalRead < buffer.Length)
+            {
+                int bytesRead = await conn.ReceiveAsync(buffer.AsMemory(totalRead, buffer.Length - totalRead), SocketFlags.None);
+                if (bytesRead == 0)
+                {
+                    // The connection has been closed gracefully by the remote side
+                    return -1;
+                }
+                totalRead += bytesRead; 
+            }
 
-        return messageLength;
+            // Return message length
+            int messageLength = BitConverter.ToInt32(buffer);
+            return messageLength;
+        }
+        catch (SocketException)
+        {
+            return -1;
+        }
+        catch (Exception)
+        {
+            return -1;
+        }
+
+
     }
 }
